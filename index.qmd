@@ -932,11 +932,6 @@ doc <- body_remove(doc) |>
 
 # Thank you {background="#EFEFEF"}
 
-**Questions?**
-
-Ressources:
-
-
 - Tables in Clinical Trials with R: <https://rconsortium.github.io/rtrs-wg/>
 - The flextable book: <https://ardata-fr.github.io/flextable-book/>
 - The flextable gallery: <https://ardata.fr/flextable-gallery/>
