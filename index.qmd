@@ -1,0 +1,945 @@
+---
+title: "Clinical Tables with 'flextable', 'tables' and 'rtables'"
+format:
+  revealjs:
+    logo: assets/img/ardata-logo.png
+title-slide-attributes:
+    data-background-image: "assets/img/flextablelogo.svg"
+    data-background-size: contain
+    data-background-color: "#0097c3"
+preload-iframes: true
+highlight-style: github
+bibliography: packages.bib
+---
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(flextable)
+library(officer)
+library(rtables)
+library(tables)
+set_flextable_defaults(
+  border.color = "#AAAAAA", font.family = "Open Sans",
+  font.size = 10, padding = 3, line_spacing = 1.3,
+  extra_css = ".tabwid {padding-top:8px;}"
+)
+```
+
+# 'flextable' package
+
+The primary goal of 'flextable'[@R-flextable, [website](https://ardata-fr.github.io/flextable-book/)]  is to provide a versatile and 
+efficient solution for creating and formatting tables in R. 
+
+It aims to make table creation and customization easier by 
+offering a flexible and user-friendly interface within the 
+R environment. The package offers extensive capabilities 
+for creating table structure, format content, and appearance.
+
+:::::::: {.columns}
+
+::::: {.column width="60%"}
+
+```{r echo=TRUE}
+ft <- summarizor(cars) |> 
+  as_flextable(sep_w=0) |> 
+  color(i = ~stat == "range", 
+        color = "pink") |> 
+  bold(j = 1) |> 
+  italic(j = 2, italic = TRUE)
+```
+:::::
+
+::::: {.column width="40%"}
+```{r}
+ft
+```
+
+:::::
+
+::::::::
+
+## features: quick overview
+
+
+:::::::: {.columns}
+
+::::: {.column width="40%"}
+
+::: {.callout-tip}
+
+## with `flextable()`
+
+'flextable' can easily create reporting table from data.frame. You can merge cells, add header rows or specify how data should be displayed in cells.
+
+[![tennis-players as png](assets/img/tennis-players.png)](examples/tennis-player/script.R)
+
+:::
+
+:::::
+
+::::: {.column width="60%"}
+
+::: {.callout-tip}
+
+## with `as_flextable()`
+
+The `as_flextable()` function is used to transform specific objects into flextable objects. 
+
+```{r echo=TRUE}
+with(palmerpenguins::penguins, table(species, island)) |>
+  as_flextable()
+```
+
+:::
+
+:::::
+
+::::::::
+
+
+## Supported outputs
+
+It supports various output formats to meet different needs : 
+
+- HTML
+- Microsoft Word and RTF
+- Microsoft PowerPoint
+- PDF
+- 'grid graphics'
+- Excel (<https://github.com/pteridin/flexlsx>)
+
+
+## Demographic table example
+
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r echo=TRUE}
+#| code-line-numbers: 3
+adsl <- select(formatters::ex_adsl, AGE, SEX, ARM)
+col_labels <- map_chr(adsl, function(x) attr(x, "label"))
+summarizor(adsl, by = "ARM") |> 
+  as_flextable()
+```
+
+::::: {style="font-size:medium;"}
+Visual aspect can be improved:
+
+- by using options of `as_flextable()`, 
+- by adding tabulations with `prepend_chunks()`,
+- by using proper labels with `labelizor()`.
+:::::
+
+:::
+
+::: {.column width="50%"}
+```{r echo=TRUE}
+#| code-line-numbers: 1-3
+ft <- summarizor(adsl, by = "ARM") |>
+  as_flextable(sep_w = 0, separate_with = "variable", 
+               spread_first_col = TRUE) |>
+  align(i = ~ !is.na(variable), align = "left") |> 
+  prepend_chunks(i = ~ is.na(variable), j  ="stat", 
+                 as_chunk("\t")) |> 
+  labelizor(j = c("stat"), labels = col_labels, 
+            part = "all") |> 
+  autofit()
+ft
+```
+
+:::
+
+::::
+
+## Save result in a file
+
+You can quickly save the result:
+
+- in a Microsoft Word with `save_as_docx()`,
+- in a Microsoft PowerPoint with `save_as_pptx()`,
+- in a PNG with `save_as_image()` with full support for fonts.
+
+```{r echo=TRUE, results='hide', eval=file.exists("assets/files/ft.pptx")}
+save_as_docx(ft, 
+  path = "assets/files/ft.docx")
+save_as_pptx(ft,
+  path = "assets/files/ft.pptx")
+save_as_image(ft,
+  path = "assets/files/ft.png")
+```
+
+
+## 
+
+::: {.callout-tip}
+
+## package 'doconv' <https://cran.r-project.org/package=doconv>
+
+You can use package 'doconv' to produce miniatures 
+from 'Word', 'PowerPoint' or 'PDF' files. 
+
+```{r echo=TRUE, results='hide', eval=!file.exists("assets/files/ft-docx.png")}
+doconv::to_miniature("assets/files/ft.docx", fileout = "assets/files/ft-docx.png")
+```
+
+:::
+
+
+::: panel-tabset
+
+### Word
+
+![[ft.docx](assets/files/ft.docx)](assets/files/ft-docx.png){width="400" fig-align="center"}
+
+### PowerPoint
+
+```{r results='hide', eval=!file.exists("assets/files/ft-pptx.png")}
+doconv::to_miniature("assets/files/ft.pptx", fileout = "assets/files/ft-pptx.png")
+```
+![](assets/files/ft-pptx.png){width="450" fig-align="center"}
+
+### PNG
+
+![](assets/files/ft.png){width="500" fig-align="center"}
+
+:::
+
+
+# R Tables for Regulatory Submissions Working Group {.smaller}
+
+<https://rconsortium.github.io/rtrs-wg/>
+
+
+> The goal of the working group is to create standards for creating tables that meet the requirements of FDA submission documents, and hence enhance the suitability of R for FDA submissions. [...]
+
+
+Participation in the working group led to several advances in 
+clinical reporting with 'flextable'.
+
+
+
+## Two types of table packages {.smaller}
+
+:::::::: {.columns}
+
+::::::: {.column width="40%"}
+
+
+Focused on formatting, with content definition populated 
+from a data.frame ('flextable', 'gt'). The data.frame based 
+approach of 'flextable' requires to first build a
+data.frame that contains all data and then to format it. 
+
+:::::::
+
+
+::::::: {.column width="60%"}
+
+
+::: {.callout-warning}
+
+## data.frame based approach
+
+It sometimes results in code that is too long and painful to write in order to produce the tables in the book. 
+
+```{r}
+formats <- c("ASCII", "PDF", "HTML", "DOCX", "RTF", "PPTX", "GRID")
+packages <- sort(c("rtables", "flextable", "tables"))
+capable <- matrix("?", length(packages), length(formats),
+                  dimnames = list(packages, formats))
+check <- "\u2713"
+                      #  ASCII   PDF    HTML   Word RTF    PPT Grid
+capable["rtables", ] <- c(check, check, check, check,  check,  check, check)
+capable["flextable", ] <-c("",   check, check, check,check, check, check)
+capable["tables", ] <-  c(check, check, check, check,  check,  check, check)
+dat <- as.data.frame(capable) |> 
+  tibble::rownames_to_column(var = "package") |> 
+  relocate(package)
+flextable(dat) |> delete_rows(i = 2:3)
+```
+
+:::
+
+:::::::
+
+::::::::
+
+
+
+
+:::::::: {.columns}
+
+::::::: {.column width="40%"}
+
+
+Focused on functional expression and content definition, with little *visual* formatting capability ('tables', 'rtables', 'tfrmt', 'tidytlg').
+Packages 'tables' and 'rtables' are expressive enough to allow these tables to be formulated and can be converted to flextable.
+
+
+:::::::
+
+
+::::::: {.column width="60%"}
+
+
+::: {.callout-tip}
+
+## as_flextable approach
+
+
+Use 'tables'[@R-tables, [website](https://dmurdoch.github.io/tables/)] and get a flextable with `as_flextable()` function.
+
+Use 'rtables'[@R-rtables, [website](https://insightsengineering.github.io/rtables/main/)] and get a flextable with `tt_to_flextable()` function.
+
+```{r}
+flextable(dat) |> delete_rows(i = 1)
+```
+
+
+:::
+
+:::::::
+
+::::::::
+
+
+# Disposition table {background="#0097c3"}
+
+This table taken from the book shows the **data.frame approach** with 
+flextable. 
+
+## Disposition table preparation
+
+Function `tabulator()` is used to prepare/structure the table.
+
+The very first step is to create the data.frame that will be used 
+by function `tabulator()` (40 lines of code with tidyverse).
+
+
+:::::::: {.columns}
+
+::::::: {.column width="52%"}
+
+```{r}
+library(survival)
+library(tidyverse)
+library(flextable)
+library(glue)
+data("cadsl", package = "random.cdisc.data")
+
+adsl <- cadsl |>
+  select(USUBJID, TRT01A, EOSSTT, DCSREAS)
+
+# data parts calculations
+part_header <- adsl |> dplyr::count(TRT01A, name = "n_part")
+
+part_completed <- adsl |> filter(EOSSTT %in% "COMPLETED") |> 
+  mutate(DCSREAS = "") |>
+  dplyr::count(TRT01A, EOSSTT, DCSREAS)
+
+part_ongoing <- adsl |> filter(EOSSTT %in% "ONGOING") |> 
+  mutate(DCSREAS = "") |>
+  dplyr::count(TRT01A, EOSSTT, DCSREAS)
+
+part_discontinued <- adsl |> 
+  filter(EOSSTT %in% "DISCONTINUED") |> 
+  dplyr::count(TRT01A, EOSSTT, DCSREAS)
+
+part_death <- cadsl |> 
+  filter(EOSSTT %in% "DISCONTINUED", DCSREAS %in% "DEATH") |> 
+  dplyr::count(TRT01A, EOSSTT, DTHCAUS) |> 
+  mutate(DTHCAUS = paste0("\t", DTHCAUS)) |> 
+  rename(DCSREAS = DTHCAUS)
+
+DCSREAS_LEV <- c(
+  "", "ADVERSE EVENT", "DEATH", 
+  part_death$DCSREAS, levels(part_discontinued$DCSREAS)) |> 
+  unique()
+EOSSTT_LEV <- c("COMPLETED", "ONGOING", "DISCONTINUED")
+
+dat <- bind_rows(
+  part_completed, 
+  part_ongoing, 
+  part_discontinued, 
+  part_death) |> 
+  inner_join(part_header, by = "TRT01A") |> 
+  mutate(percent = n / n_part, n_part = NULL,
+         DCSREAS = factor(DCSREAS, levels = DCSREAS_LEV),
+         EOSSTT = factor(EOSSTT, levels = EOSSTT_LEV)
+  )
+dat |> as_flextable()
+```
+::::::: 
+::::::: {.column width="48%"}
+
+
+```{r echo=TRUE}
+tab <- tabulator(
+  x = dat,
+  rows = c("EOSSTT", "DCSREAS"), 
+  columns = "TRT01A",
+  content_cell = 
+    as_paragraph(
+      fmt_n_percent(n, percent)
+    )
+)
+```
+::::::: 
+::::::::
+
+## Disposition table creation
+
+
+:::::::: {.columns}
+
+::::: {.column width="50%"}
+
+
+```{r echo=TRUE}
+#| code-line-numbers: 1-3
+ft <- as_flextable(tab,
+  spread_first_col = TRUE,
+  columns_alignment = "center"
+)
+
+# add '(N=xx)'
+TRT_COUNTS <- setNames(
+  part_header$n_part,
+  part_header$TRT01A
+)
+for (TRT_COD in names(TRT_COUNTS)) {
+  ft <- append_chunks(
+    x = ft, part = "header", i = 1,
+    j = tabulator_colnames(
+      tab,
+      columns = "content_cell",
+      TRT01A %in% !!TRT_COD
+    ),
+    as_chunk(TRT_COUNTS[TRT_COD],
+      formatter = function(n) sprintf("\n(N=%.0f)", n)
+    )
+  )
+}
+
+ft <- labelizor(ft,
+  j = "DCSREAS",
+  part = "all", labels = function(x) tools::toTitleCase(tolower(x))
+) |>
+  labelizor(
+    labels = c(Dcsreas = ""),
+    j = "DCSREAS", part = "header"
+  ) |>
+  align(
+    i = ~ !is.na(EOSSTT) | seq_along(EOSSTT) == 1,
+    j = 1, align = "left"
+  ) |>
+  prepend_chunks(
+    i = ~ is.na(EOSSTT),
+    j = "DCSREAS", as_chunk("\t")
+  ) |>
+  autofit()
+```
+
+:::::
+
+
+::::: {.column width="50%"}
+```{r}
+ft
+```
+
+:::::
+
+::::::::
+
+# Adverse Event Table {background="#0097c3"}
+
+This table is using package `tables::tabular()` to produce a tabular object 
+that will then be transformed into a flextable with function
+`as_flextable()`.  
+
+
+## Adverse Event Table preparation {.smaller}
+
+link: <https://rconsortium.github.io/rtrs-wg/commontables.html#tables-5>
+
+
+```{r}
+library(tables)
+ex_adae <- formatters::ex_adae
+ex_adsl <- formatters::ex_adsl
+subject_counts <- table(ex_adsl$ARM)
+
+countpercentid <- function(num, ARM) {
+  n <- length(unique(num))
+  if (n == 0) pct <- 0
+  else        pct <- 100*n/subject_counts[ARM[1]]
+  sprintf("%d (%.2f%%)", 
+          length(unique(num)), 
+          pct)
+}
+
+count <- function(x) sprintf("(N=%d)", length(x))
+
+```
+
+:::::::: {.columns}
+
+::::: {.column width="40%"}
+
+
+```{r echo=TRUE}
+heading <- tabular(
+  Heading("")*1*
+    Heading("")*count ~ 
+    Heading()*ARM, data = ex_adsl)
+
+body <- tabular( 
+  Heading("Patients with at least one event")*1*
+    Heading("")*countpercentid*Arguments(ARM = ARM)*
+    Heading()*USUBJID +
+    
+  Heading("Total number of events")*1*Heading("")*1 +
+    
+  Heading()*AEBODSYS*
+    (Heading("Patients with at least one event")*
+       Percent(denom = ARM, fn = countpercentid)*
+       Heading()*USUBJID +
+     Heading("Total number of events")*1 +
+     Heading()*AEDECOD*DropEmpty(which = "row")*
+       Heading()*Percent(denom = ARM, fn = countpercentid)*
+       Heading()*USUBJID) ~ 
+    
+  Heading()*ARM, 
+  data = ex_adae)
+tab <- rbind(heading, body)
+```
+
+:::::
+
+::::: {.column width="60%"}
+ ![console output for tab](assets/img/AE-tables-console.png)
+:::::
+
+::::::::
+## Adverse Event Table creation {.smaller}
+
+'flextable' code: <https://rconsortium.github.io/rtrs-wg/commontables.html#flextable-5>
+
+:::::::: {.columns}
+
+::::: {.column width="40%"}
+
+
+```{r echo=TRUE}
+#| code-line-numbers: 1-4
+ae_ft <- as_flextable(
+  body,
+  spread_first_col = TRUE,
+  add_tab = TRUE) |>
+  align(
+    j = 1, part = "all",
+    align = "left") |>
+  add_header_row(
+    values = 
+      c("", fmt_header_n(subject_counts,
+                         newline = FALSE)),
+    top = FALSE) |> 
+  hline(
+    i = 1,
+    part = "header", 
+    border = fp_border_default(width = 0))
+```
+
+:::::
+
+
+::::: {.column width="60%"}
+
+```{r}
+ae_ft
+```
+
+
+:::::
+
+::::::::
+
+# Concomitant Medications Table {background="#0097c3"}
+
+This table is using package 'rtables' to produce an object 
+that will then be transformed into a flextable with function
+`rtables::tt_to_flextable()`.  
+
+
+## Concomitant Medications preparation {.smaller}
+
+link: <https://rconsortium.github.io/rtrs-wg/commontables.html#rtables-7>
+
+```{r}
+library(rtables)
+data("cadsl", package = "random.cdisc.data")
+
+adsl <- cadsl |>
+  select(USUBJID, TRT01A, EOSSTT, DCSREAS, DTHCAUS)
+
+top_afun <- function(x, .N_col) {
+    in_rows(Completed = rcell(sum(x=="COMPLETED") * c(1, 1/.N_col), format = c("xx (xx.x%)")),
+            Ongoing = rcell(sum(x=="ONGOING") * c(1, 1/.N_col), format = c("xx (xx.x%)")))
+}
+
+count_pct_afun <- function(x, .N_col) {
+    tbl <- table(x)
+    lst <- lapply(tbl, function(xi) rcell(xi * c(1, 1/.N_col), format = c("xx (xx.x%)")))
+    in_rows(.list = lst, .names = names(tbl))
+}
+```
+
+:::::::: {.columns}
+
+::::: {.column width="40%"}
+
+```{r echo=TRUE}
+lyt <- basic_table(
+  show_colcounts = TRUE) |>
+  split_cols_by("TRT01A") |>
+  analyze("EOSSTT", top_afun) |>
+  split_rows_by("EOSSTT",
+    split_fun = 
+      keep_split_levels("DISCONTINUED")
+  ) |>
+  analyze("DCSREAS", count_pct_afun) |>
+  split_rows_by("DCSREAS",
+    split_fun = 
+      keep_split_levels("DEATH")
+  ) |>
+  analyze("DTHCAUS", count_pct_afun)
+
+tab <- build_table(lyt, adsl)
+```
+
+```{css}
+.output-smaller {
+  font-size='smaller'
+}
+```
+
+
+:::::
+
+::::: {.column width="60%" }
+
+```{r}
+#| class-output: output-smaller
+tab
+```
+
+
+:::::
+
+::::::::
+
+
+## Concomitant Medications creation {.smaller}
+
+
+:::::::: {.columns}
+
+::::: {.column width="40%"}
+
+```{r echo=TRUE}
+ft <- tt_to_flextable(tab) |> 
+  theme_booktabs() |> 
+  font(fontname = "Open Sans") |> 
+  bold(i = ~ V2 %in% "", 
+       j = 1, bold = TRUE) |> 
+  bold(i = 1, j = 1, 
+       bold = TRUE) |> 
+  align(j = 2:4, align = "center", 
+        part = "all") |> 
+  set_table_properties(layout = "fixed") |> 
+  autofit()
+```
+
+Fonts, table layout and few other details need to be 
+changed to produce a nice flextable.
+
+:::::
+
+::::: {.column width="60%"}
+```{r}
+ft
+```
+
+:::::
+
+::::::::
+
+# Pagination {background="#0097c3"}
+
+The pagination of tables allows you to control their position in relation to page breaks. Packages 'tables', 'rtables' and 'flextable' implement 
+their pagination vision.
+
+## Pagination with 'flextable' {.smaller}
+
+
+:::::::: {.columns}
+
+::::: {.column width="30%"}
+
+When working with Word or RTF, it is possible to prevents breaks between tables rows you want to stay together. Function `paginate()` let you define this pagination.
+
+From <https://ardata-fr.github.io/flextable-book/layout.html#pagination>
+```{r echo=TRUE, eval=FALSE}
+#| code-line-numbers: 6-9
+ft_2 <- tabular(
+  cut * clarity ~ Format(digits = 2) *
+    (x + y) * (mean + sd),
+  data = dat
+) |> ... |> 
+  paginate(
+    init = TRUE, 
+    group = "COL1",
+    group_def = "nonempty")
+```
+
+[example_tabular_paginated.docx](assets/files/example_tabular_paginated.docx)
+
+:::::
+
+::::: {.column width="70%"}
+
+![paginated table in Word](assets/img/example_tabular_paginated.png)
+
+:::::
+
+::::::::
+
+
+
+
+## Pagination with 'rtables' {.smaller}
+
+
+:::::::: {.columns}
+
+::::: {.column width="50%"}
+
+
+```{r echo=TRUE}
+#| code-line-numbers: 17
+tbl_list <- basic_table() |>
+  split_cols_by("ARM") |>
+  split_rows_by(
+    "STRATA1", 
+    split_fun = keep_split_levels(c("A", "B")), 
+    page_by = TRUE, page_prefix = "Stratum") |>
+  split_rows_by(
+    "RACE", 
+    split_fun = keep_split_levels(c("ASIAN", "WHITE"))) |>
+  summarize_row_groups() |>
+  analyze("AGE", afun = function(x, ...) 
+    in_rows(
+      "mean (sd)" = rcell(c(mean(x), sd(x)), format = "xx.x (xx.x)"),
+      "range" = rcell(range(x), format = "xx.x - xx.x")
+    )) |> 
+  build_table(formatters::ex_adsl) |> 
+  paginate_table(lpp = 20)
+```
+
+
+
+:::::
+
+
+::::: {.column width="50%"}
+
+Now let's use 'officer' to add tables into a Word document, 
+one table per page.
+
+```{r echo=TRUE}
+doc <- read_docx()
+for(name in names(tbl_list)) {
+  ft <- tt_to_flextable(tbl_list[[name]]) |> 
+    theme_booktabs() |> 
+    font(fontname = "Open Sans")
+  doc <- body_add_flextable(doc, ft)
+  doc <- body_add_break(doc)
+}
+doc <- body_remove(doc)
+print(doc, target = "assets/files/rtables-paginated.docx")
+```
+
+```{r results='hide', eval=!file.exists("assets/img/rtables-paginated.png")}
+doconv::to_miniature("assets/files/rtables-paginated.docx", fileout = "assets/img/rtables-paginated.png", row = c(1,1))
+```
+:::::
+
+::::::::
+
+![[rtables-paginated](assets/files/rtables-paginated.docx)](assets/img/rtables-paginated.png)
+
+## Pagination with 'tables' {.smaller}
+
+
+:::::::: {.columns}
+
+::::: {.column width="50%"}
+
+Let's create a quick example with 'tables'.
+
+```{r echo=TRUE}
+tab <- tabular(
+  (cut*color + 1) ~ 
+    (n=1) + 
+    Format(digits=2)*
+    (price + x)*(mean + sd), 
+  data = ggplot2::diamonds)
+
+# there are 7 'color' and 5 cut 
+splits <- split(
+  seq_len(7*5), 
+  rep(1:5, each = 7))
+
+```
+
+
+:::::
+
+
+::::: {.column width="50%"}
+
+
+Now let's use 'officer' to add tables into a Word document, 
+one table per page.
+
+```{r echo=TRUE}
+doc <- read_docx()
+for(spl in splits) {
+  ft <- as_flextable(tab[spl,], spread_first_col = TRUE)
+  doc <- body_add_flextable(doc, ft)
+  doc <- body_add_break(doc)
+}
+doc <- body_remove(doc)
+print(doc, target = "assets/files/tables-paginated.docx")
+```
+
+
+
+```{r results='hide', eval=!file.exists("assets/img/tables-paginated.png")}
+doconv::to_miniature("assets/files/tables-paginated.docx", fileout = "assets/img/tables-paginated.png", row = c(1,1,1,1,1))
+```
+:::::
+
+::::::::
+
+![[tables-paginated.docx](assets/files/tables-paginated.docx)](assets/img/tables-paginated.png)
+
+# Advanced Word features {background="#0097c3"}
+
+We're going to take a look at some of the features that go well with clinical reporting and Word file production:
+
+- adding computed fields
+- section management with officer.
+
+## Word Computed fields and flextable {.smaller}
+
+
+:::::::: {.columns}
+
+::::: {.column width="50%"}
+
+```{r echo=TRUE, eval=!file.exists("assets/files/tables-fields.docx")}
+doc <- read_docx()
+for (spl in splits) {
+  ft <- as_flextable(tab[spl, ],
+    spread_first_col = TRUE
+  ) |>
+    add_footer_lines(
+      values =
+        as_paragraph(
+          "p. ",
+          as_word_field(x = "Page", width = .05),
+          " on ", as_word_field(x = "NumPages", width = .05)
+        )
+    )
+  doc <- body_add_flextable(doc, ft) |>
+    body_add_break()
+}
+doc <- body_remove(doc) |>
+  print(
+    target = "assets/files/tables-fields.docx"
+  )
+```
+
+:::::
+
+::::: {.column width="50%"}
+
+![[tables-with-fields](assets/files/tables-fields.docx)](assets/img/tables-fields.png)
+
+:::::
+
+:::::::: 
+## Use section headers and footers {.smaller}
+
+
+:::::::: {.columns}
+
+::::: {.column width="50%"}
+
+```{r echo=TRUE, eval=!file.exists("assets/files/tables-sections.docx")}
+header_default <- 
+  block_list(
+    fpar(ftext("p. "), 
+         run_word_field(field = "Page"),
+         " on ", 
+         run_word_field(field = "NumPages")))
+footer_default <- 
+  block_list(
+    fpar(
+      external_img(src = "assets/img/r-in-pharma-logo.png")))
+
+ps <- prop_section(
+  header_default = header_default,
+  footer_default = footer_default)
+
+doc <- read_docx()
+for(spl in splits) {
+  ft <- as_flextable(tab[spl,], 
+    spread_first_col = TRUE)
+  doc <- body_add_flextable(doc, ft)|> 
+    body_add_break()
+}
+doc <- body_remove(doc) |> 
+  body_set_default_section(value = ps) |> 
+  print(target = "assets/files/tables-sections.docx")
+```
+
+:::::
+
+
+::::: {.column width="50%"}
+
+![[tables-with-sections](assets/files/tables-sections.docx)](assets/img/sections.png)
+:::::
+
+::::::::
+
+# Thank you {background="#EFEFEF"}
+
+**Questions?**
+
+Ressources:
+
+- Tables in Clinical Trials with R: <https://rconsortium.github.io/rtrs-wg/>
+- The flextable book: <https://ardata-fr.github.io/flextable-book/>
+- The flextable gallery: <https://ardata.fr/flextable-gallery/>
+
+
+
+References:
