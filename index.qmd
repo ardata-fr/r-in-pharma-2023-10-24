@@ -936,10 +936,11 @@ doc <- body_remove(doc) |>
 
 Ressources:
 
+
 - Tables in Clinical Trials with R: <https://rconsortium.github.io/rtrs-wg/>
 - The flextable book: <https://ardata-fr.github.io/flextable-book/>
 - The flextable gallery: <https://ardata.fr/flextable-gallery/>
-
-
+- source of the presentation: <https://github.com/ardata-fr/r-in-pharma-2023-10-24>
+- presentation: <https://ardata.fr/r-in-pharma-2023-10-24>
 
 References:
