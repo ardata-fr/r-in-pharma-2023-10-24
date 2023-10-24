@@ -1,5 +1,6 @@
 library(tidyverse)
 library(here)
+library(flextable)
 
 set_flextable_defaults(big.mark=" ",
                        font.family = "Open Sans")
